@@ -124,7 +124,7 @@ init([]) ->
 handle_call(run, _From, State) ->
     %% Schedule next report
     Now = now(),
-    % erlang:send_after(State#state.report_interval, self(), report),
+    erlang:send_after(State#state.report_interval, self(), report),
     {reply, ok, State#state { start_time = Now, last_write_time = Now}};
 
 handle_call({op, Op, ok, ElapsedUs}, From, State) ->
@@ -285,7 +285,6 @@ process_stats(Now, State) ->
 %%
 report_latency(Elapsed, Window, Op) ->
     Hist = erlang:get({latencies, Op}),
-    ?INFO("Hist:~p\n", [Hist]),
     Errors = error_counter(Op),
     Units = units_counter(Op),
     case basho_stats_histogram:observations(Hist) > 0 of
