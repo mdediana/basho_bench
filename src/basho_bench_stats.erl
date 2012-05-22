@@ -285,7 +285,6 @@ process_stats(Now, State) ->
 %%
 report_latency(Elapsed, Window, Op) ->
     Hist = erlang:get({latencies, Op}),
-    ?INFO("Hist:~p\n", [Hist]),
     Errors = error_counter(Op),
     Units = units_counter(Op),
     case basho_stats_histogram:observations(Hist) > 0 of
@@ -311,6 +310,11 @@ report_latency(Elapsed, Window, Op) ->
                                   Errors])
     end,
     ok = file:write(erlang:get({csv_file, Op}), Line),
+
+    %% Write histogram to output file (per op) for future merging.
+    HistFileName = atom_to_list(element(1, Op)) ++ "_histogram.bin",
+    ok = file:write_file(HistFileName, term_to_binary({Hist, Units, Errors})),
+
     {Units, Errors}.
 
 report_total_errors(State) ->                          
