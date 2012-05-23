@@ -182,6 +182,11 @@ measurement_csv_file({Label, _Op}) ->
     ok = file:write(F, <<"elapsed, window, n, min, mean, median, 95th, 99th, 99_9th, max, errors\n">>),
     F.
 
+hist_bin_file({Label, _Op}) -> 
+    Fname = normalize_label(Label) ++ "_histogram.bin",
+    {ok, F} = file:open(Fname, [raw, binary, write]),
+    F.
+
 normalize_label(Label) when is_list(Label) ->
     replace_special_chars(Label);
 normalize_label(Label) when is_binary(Label) ->
@@ -312,8 +317,7 @@ report_latency(Elapsed, Window, Op) ->
     ok = file:write(erlang:get({csv_file, Op}), Line),
 
     %% Write histogram to output file (per op) for future merging.
-    HistFileName = atom_to_list(element(1, Op)) ++ "_histogram.bin",
-    ok = file:write_file(HistFileName, term_to_binary({Hist, Units, Errors})),
+    ok = file:write(hist_bin_file(Op), term_to_binary({Hist, Units, Errors})),
 
     {Units, Errors}.
 
