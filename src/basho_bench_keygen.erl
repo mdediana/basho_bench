@@ -71,6 +71,15 @@ new({function, Module, Function, Args}, Id) ->
         _Error ->
             ?FAIL_MSG("Could not find keygen function: ~p:~p\n", [Module, Function])
     end;
+new({locality, Degree, InputGen, MaxKey}, Id) ->
+    MaxKey1 = round(MaxKey / 2),
+    Gen1 = new({InputGen, MaxKey1}, Id),
+    Gen2 = new({InputGen, MaxKey - MaxKey1}, Id),
+    fun() -> case random:uniform() >= Degree of
+                 true -> Gen1();
+                 false -> MaxKey1+ Gen2()
+             end
+    end;
 new(Other, _Id) ->
     ?FAIL_MSG("Unsupported key generator requested: ~p\n", [Other]).
 
@@ -81,6 +90,8 @@ dimension({sequential_int, MaxKey}) ->
 dimension({partitioned_sequential_int, MaxKey}) ->
     MaxKey;
 dimension({uniform_int, MaxKey}) ->
+    MaxKey;
+dimension({locality, _Degree, _InputGen, MaxKey}) ->
     MaxKey;
 dimension(Other) ->
     ?INFO("No dimension available for key generator: ~p\n", [Other]),
