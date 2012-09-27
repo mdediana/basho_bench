@@ -50,12 +50,12 @@ new({partitioned_sequential_int, MaxKey}, Id) ->
 new({partitioned_sequential_int, StartKey, NumKeys}, Id) ->
     Workers = basho_bench_config:get(concurrent),
     Range = NumKeys div Workers,
-    MinValue = StartKey + Range * (Id - 1),
-    MaxValue = StartKey + Range * Id,
     Rem = case Id of
         Workers -> NumKeys rem Workers;
         _ -> 0
     end,
+    MinValue = StartKey + Range * (Id - 1),
+    MaxValue = StartKey + Range * Id + Rem,
     Ref = make_ref(),
     ?DEBUG("ID ~p generating range ~p to ~p\n", [Id, MinValue, MaxValue]),
     fun() -> sequential_int_generator(Ref, Range + Rem) + MinValue end;
