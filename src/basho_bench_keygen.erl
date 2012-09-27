@@ -52,9 +52,13 @@ new({partitioned_sequential_int, StartKey, NumKeys}, Id) ->
     Range = NumKeys div Workers,
     MinValue = StartKey + Range * (Id - 1),
     MaxValue = StartKey + Range * Id,
+    Rem = case Id of
+        Workers -> NumKeys rem Workers;
+        _ -> 0
+    end,
     Ref = make_ref(),
     ?DEBUG("ID ~p generating range ~p to ~p\n", [Id, MinValue, MaxValue]),
-    fun() -> sequential_int_generator(Ref,Range) + MinValue end;
+    fun() -> sequential_int_generator(Ref, Range + Rem) + MinValue end;
 new({uniform_int, MaxKey}, _Id) ->
     fun() -> random:uniform(MaxKey) end;
 new({pareto_int, MaxKey}, _Id) ->
