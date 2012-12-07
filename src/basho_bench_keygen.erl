@@ -81,9 +81,19 @@ new({locality, Degree, InputGen, MaxKey}, Id) ->
     Gen2 = new({InputGen, MaxKey - MaxKey1}, Id),
     fun() -> case random:uniform() >= Degree of
                  true -> Gen1();
-                 false -> MaxKey1+ Gen2()
+                 false -> MaxKey1 + Gen2()
              end
     end;
+new({limit_keys, InputGen, NumKeys}, Id) ->
+    Workers = basho_bench_config:get(concurrent),
+    KeysPerWorker = NumKeys div Workers,
+    Rem = case Id of
+        Workers -> NumKeys rem Workers;
+        _ -> 0
+    end,
+    Ref = make_ref(),
+    Gen = new(InputGen, Id),
+    fun() -> limit_keys_generator(Ref, Gen, KeysPerWorker + Rem) end;
 new(Other, _Id) ->
     ?FAIL_MSG("Unsupported key generator requested: ~p\n", [Other]).
 
@@ -97,6 +107,8 @@ dimension({uniform_int, MaxKey}) ->
     MaxKey;
 dimension({locality, _Degree, _InputGen, MaxKey}) ->
     MaxKey;
+dimension({limit_keys, _InputGen, NumKeys}) ->
+    NumKeys;
 dimension(Other) ->
     ?INFO("No dimension available for key generator: ~p\n", [Other]),
     undefined.
@@ -137,3 +149,15 @@ sequential_int_generator(Ref, MaxValue) ->
            erlang:put({sigen, Ref}, Value+1),
            Value
    end.
+
+limit_keys_generator(Ref, Gen, NumKeys) ->
+   %% See comment in sequential_int_generator
+   case erlang:get({limit_keys_numkeys, Ref}) of
+       undefined ->
+           erlang:put({limit_keys_numkeys, Ref}, 1);
+       NumKeys ->
+           throw({stop, empty_keygen});
+       Value ->
+           erlang:put({limit_keys_numkeys, Ref}, Value + 1)
+   end,
+   Gen().
