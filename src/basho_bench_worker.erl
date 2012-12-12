@@ -223,6 +223,9 @@ worker_next_op(State) ->
     Start = now(),
     Result = (catch (State#state.driver):run(OpTag, State#state.keygen, State#state.valgen,
                                              State#state.driver_state)),
+    %% Dirty but necessary hack: Messages with StartUpdUs are sent by tests
+    %% which emit gets followed by updates. In this cases, we are interested
+    %% only in the update times.
     ElapsedUs = timer:now_diff(now(), Start),
     case Result of
         {Res, DriverState} when Res == ok orelse element(1, Res) == ok ->
@@ -230,9 +233,21 @@ worker_next_op(State) ->
             basho_bench_stats:op_complete(Next, Res, ElapsedUs),
             {ok, State#state { driver_state = DriverState}};
 
+        {Res, StartUpd, DriverState} when Res == ok orelse element(1, Res) == ok ->
+            %% Success
+            ElapsedUpdUs = timer:now_diff(now(), StartUpd),
+            basho_bench_stats:op_complete(Next, Res, ElapsedUpdUs),
+            {ok, State#state { driver_state = DriverState}};
+
         {error, Reason, DriverState} ->
             %% Driver encountered a recoverable error
             basho_bench_stats:op_complete(Next, {error, Reason}, ElapsedUs),
+            {ok, State#state { driver_state = DriverState}};
+
+        {error, Reason, StartUpd, DriverState} ->
+            %% Driver encountered a recoverable error
+            ElapsedUpdUs = timer:now_diff(now(), StartUpd),
+            basho_bench_stats:op_complete(Next, {error, Reason}, ElapsedUpdUs),
             {ok, State#state { driver_state = DriverState}};
 
         {'EXIT', Reason} ->

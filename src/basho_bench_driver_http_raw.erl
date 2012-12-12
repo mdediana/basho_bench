@@ -162,9 +162,10 @@ run(update_existing, KeyGen, ValueGen, State) ->
 
         {ok, Url, Headers} ->
             Vclock = lists:keyfind("X-Riak-Vclock", 1, Headers),
+            Start = now(),
             case do_put(Url, [State#state.client_id, Vclock], ValueGen) of
                 ok ->
-                    {ok, S2};
+                    {ok, Start, S2};
                 {error, Reason} ->
                     {error, Reason, S2}
             end
