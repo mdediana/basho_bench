@@ -69,7 +69,9 @@
 
          %%
          %% RNG Seed -- ensures consistent generation of key/value sizes (but not content!)
+         %% For inconsistent generation, use now
          %%
-         {rng_seed, {42, 23, 12}}
+         %{rng_seed, {42, 23, 12}}
+         {rng_seed, now}
         ]}
 ]}.
